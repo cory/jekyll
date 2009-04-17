@@ -17,11 +17,31 @@ module Jekyll
     # Returns nothing
     def read_yaml(base, name)
       self.content = File.read(File.join(base, name))
-
+      
       if self.content =~ /^(---\s*\n.*?)\n---\s*\n/m
         self.content = self.content[($1.size + 5)..-1]
-
-        self.data = YAML.load($1)
+        
+        # will barf if textile or markdown lead to malformed strings in yaml
+        
+        # split into lines
+        content_lines = $1.split("\n")
+        
+        # for each line in place
+        content_lines.collect! do |line|
+          
+          # split on YAML mapping indicator
+          line_array = line.split(": ")
+          
+          # rollup rest of line (in case accidentally included another mapping)
+          # inspect to escape quotes
+          line_array[1] = line_array[1..-1].join.inspect
+          
+          # join back around mapping
+          line_array.join(": ")
+        end
+                
+        # join up rest of lines and load into YAML
+        self.data = YAML.load(content_lines.join("\n"))
       end
     end
 
